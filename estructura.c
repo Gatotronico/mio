@@ -19,7 +19,8 @@ struct NodoUsuario {
 struct Usuario {
     char *nombre;
     int id;
-    char historialcompra[MAX_COMPRAS][100];
+    char historialcompraNombre[MAX_COMPRAS][100];
+    int historialcompraCantidad[MAX_COMPRAS];
     int nroCompras;
 };
 
@@ -49,7 +50,7 @@ void cambiarNombreUsuario(struct NodoUsuario **usuarios, int id, char *nuevoNomb
 int enlazarProducto(struct NodoProductos **head, struct producto *nuevoProducto);
 void ordenarPorID(struct NodoUsuario **head);
 int descontarProducto(struct NodoProductos *producto, int idProducto, int cantidad);
-void agregarHistorial(struct NodoUsuario *usuario, struct NodoProductos *producto, int idUsuario, int idProducto);
+void agregarHistorial(struct NodoUsuario *usuario, struct NodoProductos *producto, int idUsuario, int idProducto, int cantidad);
 
 
 
@@ -161,16 +162,25 @@ struct NodoUsuario *busquedaBinaria(struct NodoUsuario **head, int id) {
 
         // Verificar si el elemento está en la mitad
         if (mitad->refUsuario->id == id) {
-            printf("Encontrado\n");
-            return mitad; // Elemento encontrado
+            return mitad;
         } else if (mitad->refUsuario->id < id) {
-            inicio = mitad->sig; // Descartar la mitad inferior
+            inicio = mitad->sig;
         } else {
-            fin = mitad; // Descartar la mitad superior
+            fin = mitad;
         }
     }
-    printf("No encontrado\n");
-    return NULL; // Elemento no encontrado
+    return NULL;
+}
+
+void imprimirUsuario(struct NodoUsuario *usuario) {
+    if (usuario != NULL) {
+        printf("Usuario encontrado:\n");
+        printf("ID: %d\n", usuario->refUsuario->id);
+        printf("Nombre: %s\n", usuario->refUsuario->nombre);
+        printf("Número de compras: %d\n", usuario->refUsuario->nroCompras);
+    } else {
+        printf("No se encontró un usuario con ese ID.\n");
+    }
 }
 
 
@@ -389,12 +399,13 @@ void comprobarAlerta(struct NodoProductos *productos, int id){
 void alerta(struct NodoProductos *productos){
     int porcentaje;
     porcentaje=((productos->refProducto->cantidad*100) / productos->refProducto->carga_inicial);
-    if (porcentaje <= ALERTA) {
+    if ((porcentaje <= ALERTA) && (0 < porcentaje)) {
         printf("El producto necesita ser recargado\n\n");
         return;
+    }else if(porcentaje==0){
+        printf("producto se a agotado\n\n");
+        return;
     }
-    else
-        printf("Al producto le queda el %d porciento de su carga inicial\n\n",porcentaje);
     return;
 }
 
@@ -472,7 +483,6 @@ void fraude_fiscal(struct NodoProductos **productos, struct NodoUsuario **Usuari
 int buscarUsuarioImp_Com(struct NodoUsuario *Usuario, int id) {
     struct NodoUsuario *rec=Usuario;
     while (rec != NULL) {
-        printf("ID buscado: %d, ID actual: %d\n", id, rec->refUsuario->id);
         if(rec->refUsuario->id==id){
             return 1;
         }rec=rec->sig;
@@ -495,13 +505,17 @@ char *buscarRetornadorProducto(struct NodoProductos *productos, int id){
 }
 
 
-void agregarHistorial(struct NodoUsuario *usuario, struct NodoProductos *producto, int idcomprador, int idproducto){
+void agregarHistorial(struct NodoUsuario *usuario, struct NodoProductos *producto, int idcomprador, int idproducto, int cantidad){
     struct NodoUsuario *rec = usuario;
     while (rec != NULL){
         if (rec->refUsuario->id == idcomprador){
-            for(int i=0;i<MAX_COMPRAS;i++) {
-                strcpy(rec->refUsuario->historialcompra[i], buscarRetornadorProducto(producto, idproducto));
-                rec->refUsuario->nroCompras+=1;
+            for(int i=0;i<=rec->refUsuario->nroCompras;i++) {
+                if (i==rec->refUsuario->nroCompras){
+                    strcpy(rec->refUsuario->historialcompraNombre[i], buscarRetornadorProducto(producto, idproducto));
+                    rec->refUsuario->historialcompraCantidad[i] = cantidad;
+                    rec->refUsuario->nroCompras+=1;
+                    return;
+                }
             }
         }rec=rec->sig;
     }
@@ -546,8 +560,9 @@ void comprar (struct NodoUsuario *usuario, struct NodoProductos *producto){
     if (descontarProducto(producto,idProducto,cantidad)==0){
         printf("No hay stock suficiente del producto\n");
     }else{
-        agregarHistorial(usuario,producto,idComprador,idProducto);
+        agregarHistorial(usuario,producto,idComprador,idProducto, cantidad);
         printf("Compra exitosa\n");
+        comprobarAlerta(producto,idProducto);
         return;
     }
 }
@@ -563,9 +578,10 @@ void imprimirCompras(struct NodoUsuario *usuario){
     }else{
         while(rec != NULL){
             if (rec->refUsuario->id == idComprador){
+                printf("Usuario %s ha comprado:\n",rec->refUsuario->nombre);
                 for(int i=0; i<rec->refUsuario->nroCompras;i++){
-                    if (rec->refUsuario->historialcompra[i]!=NULL){
-                        printf("%i = %s\n",i+1,rec->refUsuario->historialcompra[i]);
+                    if (rec->refUsuario->historialcompraNombre[i]!=NULL){
+                        printf("Compra %i = %s cantidad %d unidad(es)\n",i+1,rec->refUsuario->historialcompraNombre[i],rec->refUsuario->historialcompraCantidad[i]);
                     }
                 }
             }rec=rec->sig;
@@ -589,6 +605,7 @@ void MenuUsuario(struct NodoUsuario **headUsuario, struct NodoProductos *headPro
         printf("4. Opción 4 Cambiar nombre de Usuario\n");
         printf("5. Opción 5 comprar producto\n");
         printf("6. Opción 6 Mostrar Historial\n");
+        printf("7. Opción 7 buscar usuario por busqueda binaria\n");
         scanf("%i", &opcion);
 
         switch (opcion) {
@@ -616,16 +633,16 @@ void MenuUsuario(struct NodoUsuario **headUsuario, struct NodoProductos *headPro
                 break;
 
             case 5:
-                comprar(headUsuario,headProductos);
+                comprar(*headUsuario,headProductos);
                 break;
             case 6:
-                imprimirCompras(headUsuario);
+                imprimirCompras(*headUsuario);
                 break;
 
             case 7:
                 printf("Ingrese id de usuario que buscar (por busqueda binaria)\n\n");
                 scanf("%d", &id);
-                busquedaBinaria(&(*headUsuario),id);
+                imprimirUsuario(busquedaBinaria(&(*headUsuario),id));
                 break;
 
             default:
