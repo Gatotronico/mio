@@ -746,7 +746,7 @@ void MenuProducto(struct NodoProductos **headProductos)
         printf("5. Opción 5 mostrar producto\n");
         printf("6. Opción 6 mostrar producto en inorden\n");
         printf("7. Opción 7 mostrar producto con mas busquedas\n");
-        printf("8. Opción 8 mostrar producto con menos busuqedas\n");
+        printf("8. Opción 8 mostrar producto con menos busquedas\n");
 
         scanf("%i", &opcion);
 
