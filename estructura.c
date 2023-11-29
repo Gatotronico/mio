@@ -63,7 +63,7 @@ struct NodoUsuario *crearNodo(struct NodoUsuario *usuarios) {
     nuevo->refUsuario = (struct Usuario *)malloc(sizeof(struct Usuario));
 
     /*Se completa con los datos*/
-    printf("Ingrese id (solo numeros): \n");
+    printf("Ingrese id (solo numeros enteros): \n");
     do
     {
         scanf("%d", &nuevo->refUsuario->id);
@@ -296,7 +296,7 @@ struct producto *crearProducto(struct NodoProductos *productos) {
         return NULL;
     }
 
-    printf("Ingrese id del nuevo producto:\n");
+    printf("Ingrese id del nuevo producto (solo numeros entero):\n");
     do {
         scanf("%d", &nuevoProducto->id);
         if (nuevoProducto->id <= 0) {
@@ -589,11 +589,85 @@ void imprimirCompras(struct NodoUsuario *usuario){
     }
 }
 
+void encontrarProductoMasGiros(struct NodoProductos *productos, struct NodoProductos **maxGiro) {
+    if (productos == NULL) {
+        return;
+    }
+
+    encontrarProductoMasGiros(productos->der, maxGiro);
+
+    if (*maxGiro == NULL || productos->refProducto->giro > (*maxGiro)->refProducto->giro) {
+        *maxGiro = productos;
+    }
+
+    encontrarProductoMasGiros(productos->izq, maxGiro);
+}
+
+void encontrarProductoMenosGiros(struct NodoProductos *productos, struct NodoProductos **minGiro) {
+    if (productos == NULL) {
+        return;
+    }
+
+    encontrarProductoMenosGiros(productos->izq, minGiro);
+
+    if (*minGiro == NULL || productos->refProducto->giro < (*minGiro)->refProducto->giro) {
+        *minGiro = productos;
+    }
+
+    encontrarProductoMenosGiros(productos->der, minGiro);
+}
+
+void imprimirProductoMasGiros(struct NodoProductos *productos) {
+    struct NodoProductos *maxGiro = NULL;
+    encontrarProductoMasGiros(productos, &maxGiro);
+
+    if (maxGiro != NULL) {
+        printf("Producto con más giros:\n");
+        printf("ID: %d, Nombre: %s, Cantidad de busuquedas: %d\n", maxGiro->refProducto->id, maxGiro->refProducto->nombre, maxGiro->refProducto->giro);
+    } else {
+        printf("No hay productos con busquedas registrados.\n");
+    }
+}
+
+void imprimirProductoMenosGiros(struct NodoProductos *productos) {
+    struct NodoProductos *minGiro = NULL;
+    encontrarProductoMenosGiros(productos, &minGiro);
+
+    if (minGiro != NULL) {
+        printf("Producto con menos giros:\n");
+        printf("ID: %d, Nombre: %s, Cantidad de busquedas: %d\n", minGiro->refProducto->id, minGiro->refProducto->nombre, minGiro->refProducto->giro);
+    } else {
+        printf("No hay productos con busquedas registrados.\n");
+    }
+}
+
+void encontrarUsuarioMasCompras(struct NodoUsuario *usuarios, struct NodoUsuario **maxCompras) {
+    struct NodoUsuario *temp = usuarios;
+
+    while (temp != NULL) {
+        if (*maxCompras == NULL || temp->refUsuario->nroCompras > (*maxCompras)->refUsuario->nroCompras) {
+            *maxCompras = temp;
+        }
+        temp = temp->sig;
+    }
+}
+
+void imprimirUsuarioMasCompras(struct NodoUsuario *usuarios) {
+    struct NodoUsuario *maxCompras = NULL;
+    encontrarUsuarioMasCompras(usuarios, &maxCompras);
+
+    if (maxCompras != NULL) {
+        printf("Usuario con más compras:\n");
+        printf("ID: %d, Nombre: %s, Número de compras: %d\n", maxCompras->refUsuario->id, maxCompras->refUsuario->nombre, maxCompras->refUsuario->nroCompras);
+    } else {
+        printf("No hay usuarios con compras registradas.\n");
+    }
+}
 
 void MenuUsuario(struct NodoUsuario **headUsuario, struct NodoProductos *headProductos)
 {
     int opcion;
-    int id,cantidad,idProducto;
+    int id;
     char *nuevoNombre;
     printf("--------------------\n");
     do {
@@ -606,6 +680,7 @@ void MenuUsuario(struct NodoUsuario **headUsuario, struct NodoProductos *headPro
         printf("5. Opción 5 comprar producto\n");
         printf("6. Opción 6 Mostrar Historial\n");
         printf("7. Opción 7 buscar usuario por busqueda binaria\n");
+        printf("8. Opción 8 usuario con mas compras realizadas\n");
         scanf("%i", &opcion);
 
         switch (opcion) {
@@ -644,6 +719,9 @@ void MenuUsuario(struct NodoUsuario **headUsuario, struct NodoProductos *headPro
                 scanf("%d", &id);
                 imprimirUsuario(busquedaBinaria(&(*headUsuario),id));
                 break;
+            case 8:
+                imprimirUsuarioMasCompras((*headUsuario));
+                break;
 
             default:
                 printf("Ingrese opcion valida\n\n");
@@ -667,6 +745,8 @@ void MenuProducto(struct NodoProductos **headProductos)
         printf("4. Opción 4 Recargar producto\n");
         printf("5. Opción 5 mostrar producto\n");
         printf("6. Opción 6 mostrar producto en inorden\n");
+        printf("7. Opción 7 mostrar producto con mas busquedas\n");
+        printf("8. Opción 8 mostrar producto con menos busuqedas\n");
 
         scanf("%i", &opcion);
 
@@ -711,6 +791,13 @@ void MenuProducto(struct NodoProductos **headProductos)
             case 6:
                 printf("Productos en orden inorden:\n");
                 listarInordenProductos((*headProductos));
+                break;
+            case 7:
+                imprimirProductoMasGiros((*headProductos));
+                break;
+
+            case 8:
+                imprimirProductoMenosGiros((*headProductos));
                 break;
 
             default:
